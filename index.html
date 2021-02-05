@@ -4,7 +4,7 @@
  * @Autor: cuijinxin
  * @Date: 2021-02-03 15:25:31
  * @LastEditors: cuijinxin
- * @LastEditTime: 2021-02-03 20:35:50
+ * @LastEditTime: 2021-02-04 16:56:27
 -->
 <!DOCTYPE html>
 <html>
@@ -13,17 +13,23 @@
   <title>巴韭特</title>
   <link rel="stylesheet" type="text/css" href="./style.css">
 </head>
-<body style="width:400px;min-height:500px;">
-  <textarea id="fundList" rows="3" cols="20"></textarea>
-  <button id="setFund" style="display: block;">设置</button>
-  <!-- <img class="setIcon" src="./static/set.svg" /> -->
-  <div id="fundInfoList"></div>
-  <!-- <div class="content">
-    <img class="icon" src="./static/up.png" ></img>
-    <span class="precent">1.82%</span>
-    <span class="fundName">招商中证白酒指数A12312312</span>
-    <span class="updateTime">2021-02-03 15:00</span>
-  </div> -->
+<body style="width:480px;min-height:100px;">
+  <div id="fundInfoContent">
+    <div id="fundInfoList"></div>
+    <div id="errorTips" class="errorTips">未获取到韭菜配置,<u id="goSetting" style="color:#409eff;cursor: pointer;">去设置</u></div>
+  </div>
+  <div id="fundSetting" class="fundSetting" style="display: none;">
+    <span class="settingTips">Tips: 请在输入框内配置韭菜品种, 多个品种用"|"分隔。</span>
+    <textarea 
+      id="fundList"
+      class="fundTextarea"
+      placeholder=""
+    ></textarea>
+    <div id="setFund" class="fundSettingSave">设置</div>
+    <div id="setFundTips" class="setFundTips">韭菜种植成功...</div>
+  </div>
+  <img id="stepLeft" class="stepLeft" src="./static/left.png" ></img>
+  <img id="stepRight"  class="stepRight" src="./static/right.png" ></img>
 </body>
 <script type="text/javascript" src="index.js"></script>
 </html>
