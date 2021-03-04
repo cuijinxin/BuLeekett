@@ -4,13 +4,45 @@
  * @Autor: cuijinxin
  * @Date: 2021-02-03 15:25:58
  * @LastEditors: cuijinxin
- * @LastEditTime: 2021-02-04 17:02:28
+ * @LastEditTime: 2021-03-04 15:42:55
  */
 // 161725|501205|001500|004854|160629|010955
+// 基金实时信息：http://fundgz.1234567.com.cn/js/001186.js?rt=1463558676006
 
+// 001186为基金代号
+
+// 返回值：jsonpgz({"fundcode":"001186","name":"富国文体健康股票","jzrq":"2016-05-17","dwjz":"0.7420","gsz":"0.7251","gszzl":"-2.28","gztime":"2016-05-18 15:00"});
+
+// 基金详细信息：http://fund.eastmoney.com/pingzhongdata/001186.js?v=20160518155842
+
+// http://fund.eastmoney.com/js/fundcode_search.js
+// 所有基金名称列表代码
+
+// http://fund.eastmoney.com/js/jjjz_gs.js?dt=1463791574015
+// 所有基金公司名称列表代码
+import fundDefault from "./js/fundAll.js";
+import {loadJS} from "./common.js"
 // 变量定义
 let step = 0; // 0 列表页 1 设置页
-
+let fundAll = []; // 所有韭菜品种列表
+// 获取所有韭菜列表
+let getFundAll = () => {
+  let xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = (res) => {
+    try {
+      if(res.target.readyState === 4 && res.target.response){
+        fundAll = ((res.target.response.split("var r = ")[1]).replaceAll("[","")).split("],").map( item => {
+          return item.split(",")
+        });
+      }
+    } catch(e) {
+      console.error(e)
+      fundAll = fundDefault; // 获取实时信息失败 就用默认的数据
+    }
+  };
+  xhr.open("GET", `http://fund.eastmoney.com/js/fundcode_search.js`, true);
+  xhr.send();
+}
 // 封装http请求
 let getFundData = (fundCode, resolve, reject) => {
   let xhr = new XMLHttpRequest();
@@ -32,22 +64,21 @@ let getFundData = (fundCode, resolve, reject) => {
 
 // 获取数据
 let searchData = (fundList) => {
-  let fund = fundList.split("|")
-  let request = [];
-  for(let i = 0; i < fund.length; i++) {
-    request.push( new Promise((resolve, reject) => {
-      getFundData(fund[i], resolve, reject)
-    }))
-  }
-  Promise.all(request).then( res => {
-    let fundData = {};
-    res.forEach( data => {
-      fundData[data.fundcode] = { ...data };
-    })
-    initfundHTML(fundData)
-    console.log(fundData)
-  }).catch( () => {
-    console.log("error")
+  return new Promise( resolve => {
+    let fund = fundList.split("|")
+    let request = [];
+    for(let i = 0; i < fund.length; i++) {
+      request.push( new Promise((rsv, rjc) => {
+        getFundData(fund[i], rsv, rjc)
+      }))
+    }
+    Promise.all(request).then( res => {
+      let fundData = {};
+      res.forEach( data => {
+        fundData[data.fundcode] = { ...data };
+      })
+      resolve(fundData)
+    });
   })
 }
 // 渲染dom
@@ -70,31 +101,35 @@ let initfundHTML = (data) => {
   }
   content.innerHTML = ele;
 }
-// 页面切换
-let changeCurPage = (step) => {
-  let fundInfoContent = document.getElementById("fundInfoContent");
-  let fundSetting = document.getElementById("fundSetting");
-  if(step === 0) { // 列表页
-    fundInfoContent.style.display = "block";
-    fundSetting.style.display = "none";
-    chrome.storage.sync.get("fundCode", (res) => {
-      document.getElementById("fundList").value = res.fundCode || "";
-      if(res.fundCode){
-        searchData(res.fundCode)
-        document.getElementById("errorTips").style.display = "none";
-      } else {
-        document.getElementById("fundInfoList").innerHTML = "";
-        document.getElementById("errorTips").style.display = "block";
-      }
-    })
-  } else if( step === 1) { // 配置页
-    fundInfoContent.style.display = "none";
-    fundSetting.style.display = "block";
-  }
+// 设置页初始化
+let initSetPage = async (fundCode) => {
+  let table = $("#fundSettingTable")
+  let tableHead = "<tr><td>长势</td><td>韭菜品种</td><td>更新时间</td></tr>";
+  table.empty();
+  table.append(tableHead);
+  let data = await searchData(fundCode);
+  fundCode.split("|").forEach( (fund, index) => {
+    console.log(data[fund])
+    if(fund){
+      table.append(initSettingDom(data[fund], index));
+    }
+  })
 }
+// 设置页Dom渲染
+let initSettingDom = (data, index) => {
+  const dom = `<tr> \
+    <td> \
+      <img class="icon" src="./static/${(data.gszzl > 0 ? "up" : "down")}.png" ></img>
+      <span style="color:${(data.gszzl > 0 ? "red" : "green")}">${data.gszzl}%</span> \
+    </td> \
+    <td><span>${data.name} <b>[${data.fundcode}]</b></span></td> \
+    <td><span>${data.gztime.split(" ")[1]}</span></td></tr>`
+  return dom;
+}
+
 // 初始化时绑定相关事件
 let bindEvent = () => {
-  // 
+  // 设置
   document.getElementById("setFund").onclick = () => {
     chrome.storage.sync.set(
       { "fundCode": document.getElementById("fundList").value }, () => {
@@ -105,34 +140,28 @@ let bindEvent = () => {
       }
     );
   }
-  // 切换页面
-  document.getElementById("stepLeft").onclick = () => {
-    step -= 1
-    step = step < 0 ? 1 : step
-    changeCurPage(step)
+  // 打开模态框
+  document.getElementById("openModal").onclick = () => {
+    $("#editModal").modal();
   }
-  document.getElementById("stepRight").onclick = () => {
-    step += 1
-    step = step > 1 ? 0 : step
-    changeCurPage(step)
-  }
-  // 跳转到设置页
-  document.getElementById("goSetting").onclick = () => {
-    step = 1
-    changeCurPage(step)
+  // 刷新
+  document.getElementById("refresh").onclick = () => {
+    chrome.storage.sync.get("fundCode", async (res) => {
+      document.getElementById("fundList").value = res.fundCode || "";
+      if(res.fundCode){
+        initSetPage(res.fundCode);
+      }
+    })
   }
 }
 
 (function() {
-  chrome.storage.sync.get("fundCode", (res) => {
+  chrome.storage.sync.get("fundCode", async (res) => {
     document.getElementById("fundList").value = res.fundCode || "";
     if(res.fundCode){
-      searchData(res.fundCode)
-      document.getElementById("errorTips").style.display = "none";
-    } else {
-      document.getElementById("fundInfoList").innerHTML = "";
-      document.getElementById("errorTips").style.display = "block";
+      initSetPage(res.fundCode);
     }
   })
-  bindEvent()
+  bindEvent();
+  getFundAll();
 })();

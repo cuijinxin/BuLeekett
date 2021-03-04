@@ -2,7 +2,7 @@
     "manifest_version": 2,
   
     "name": "巴韭特",
-    "description": "巴韭特 | BuLeekett",
+    "description": "【巴韭特 | BuLeekett】",
     "version": "1.0",
   
     "icons": {
@@ -16,6 +16,7 @@
         "matches":["<all_urls>"]
       }
     ],
+    "content_security_policy": "script-src 'self'; object-src 'self'",
     "browser_action": {
       // "default_icon": "img/icon.png",
       // // 图标悬停时的标题，可选
@@ -25,6 +26,7 @@
     // 允许访问的域名
     "permissions": [
       "http://fundgz.1234567.com.cn/",
+      "http://fund.eastmoney.com/",
       "http://*/*",
       "https://*/*",
       "storage"
